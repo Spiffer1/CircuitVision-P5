@@ -9,6 +9,11 @@ let circuitSketch = function(p) {
 
   p.setup = function() {
     p.createCanvas(200, 200);
+    p.createP("Demo: Creating separate 2D and 3D canvases."
+            + "One canvas can access variables from the other."
+            + "Here, the cube color is determined by the rectangle's position."
+            + "(Upper Left: Red; Upper Right: Blue)"
+            + "(Lower Left: Cyan; Lower Right: Yellow)");
   }
 
   p.draw = function() {
