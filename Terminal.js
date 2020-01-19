@@ -112,11 +112,4 @@ class Terminal {
         }
         return false;
     }
-
-    // /**
-    //  * @ return Returns the x and y coordinates of the Terminal. Note: it is not in row, column order.
-    //  */
-    // Terminal.prototype.toString = function terminalToString() {
-    //     return "(" + this.col + ", " + this.row + ")";
-    // }
 }

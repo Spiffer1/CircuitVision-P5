@@ -10,11 +10,4 @@ class Resistor extends Component {
         super();
         this.resistance = resist;
     }
-
-    // /**
-    //  * @return Adds to the component's toString() the resistance value
-    //  */
-    // Resistor.prototype.toString = function resistorToString() {
-    //     return super.toString() + "Resistor " + resistance + " ohms\t";
-    // }
 }
