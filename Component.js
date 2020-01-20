@@ -132,27 +132,4 @@ class Component {
         }
         return false;
     }
-
-    // /**
-    //  * @return  Returns the terminals the component is connected between, the current direction terminal,
-    //  * and the current through the component.
-    //  */
-    // Component.prototype.toString = function componentToString() {
-    //     let result = "";
-    //     if (this.endPt1 !== null) {
-    //         result += "(" + this.endPt1.getCol() + ", " + this.endPt1.getRow() + ") to ";
-    //     }
-    //     else {
-    //         result += "null to ";
-    //     }
-    //     if (this.endPt2 !== null) {
-    //         result += "(" + this.endPt2.getCol() + ", " + this.endPt2.getRow() + ")  ";
-    //     }
-    //     else {
-    //         result += "null  ";
-    //     }
-    //     result += "Current Direction: " + getCurrentDirection() + "  ";
-    //     result += "Current: " + getCurrent() + "  ";
-    //     return result;
-    // }
 }

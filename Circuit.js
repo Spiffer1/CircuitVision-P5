@@ -58,6 +58,109 @@ class Circuit {
     }
 
     /**
+     * This method uses helper methods to:
+     *     (1) populate the Array of nodes (junctions) for a circuit;
+     *     (2) assign a current/branch number to each independent branch of the circuit; dead-ends are branch 999
+     *     (3) assign a current-direction to each component within each branch;
+     *     (4) populate an array of loops, wherein each loop is an array of the components in that loop;
+     * @param nodes  Terminal[]: An empty array that will be populated with the terminals that are junctions in the circuit.
+     * @param origloops  Component[][]: An empty array of arrays of components that will be populated with components from circuit loops.
+     * @return int: The number of branches in the circuit, excluding any dead-end branches.
+     */
+    findNodesAndLoops(nodes, origLoops) {
+        // Original circuit, including any dead-ends
+        this.findNodes(nodes);
+        this.labelBranches(nodes);
+        if (this.numBranches === 0) {  // There is not a complete circuit
+            return 0;
+        }
+        // A copy of the circuit that will have dead-ends removed.
+        const equationCopy = this.clone(this);
+        equationCopy.findNodes(nodes);
+        equationCopy.labelBranches(nodes);
+        let deadEnd = equationCopy.getComponents()[0]; // just to be not null
+        while (deadEnd !== null) {  // Remove one dangling component at a time, until there are no more
+            deadEnd = equationCopy.removeDangler();
+            if (deadEnd !== null) {
+                const orig = equationCopy.findCorrespondingComponent(this, deadEnd);
+                orig.setBranch(999);
+            }
+        }
+
+        equationCopy.findNodes(nodes);  // The nodes list is now properly updated for writing circuit equations.
+        equationCopy.labelBranches(nodes);
+
+        // Update original circuit with branch numbers and currentDirections from the copy that has had deadends trimmed off.
+        for (let c of equationCopy.getComponents()) {
+            const orig = this.findCorrespondingComponent(this, c);
+            orig.setBranch(c.getBranch());
+            orig.setCurrentDirection(c.getCurrentDirection());
+        }
+
+        // Make a copy of circuit and nodes that can be modified during the loop analysis. As loops are identified,
+        // components will be removed from the copy circuit, so that different loops can be found.
+        const copy = this.clone(equationCopy);
+        const copyNodes = [];
+        copy.findNodes(copyNodes);
+        copy.labelBranches(copyNodes);
+
+        this.numBranches = copy.getNumBranches();
+
+        // Makes an array parallel to origLoops: an array of arrays of components within each loop.
+        const copyLoops = []; // loops in the copy circuit, not the original circuit
+        let loopCounter = 0;
+        while (copy.getComponents().length > 0) {
+            copyLoops.push([]);
+            origLoops.push([]);
+            //  make array of terminals in loop
+            const copyTerms = [];
+            let comp = copy.getComponents()[0];
+            let prevTerm = comp.getEndPt1();
+            copyTerms.push(prevTerm);
+            let endLoop = false;
+            while (!endLoop) {
+                //walk around loop, adding terminals and components to their arrays
+                copyLoops[loopCounter].push(comp);
+                origLoops[loopCounter].push(this.findCorrespondingComponent(this, comp));  // corresponding component in orig circuit
+                let nextTerm = comp.getEndPt2();
+                if (nextTerm === prevTerm) {  // then nextTerm is not actually the next terminal in the loop...
+                    nextTerm = comp.getEndPt1();    // so get the other end of the component
+                }
+
+                if (copyTerms.includes(nextTerm)) {  // you have reached a terminal you have seen before
+                    endLoop = true;
+                }
+                else {   // get one of the connected components (that is not the component you just added to the loop)
+                    let nextComp = nextTerm.getConnections()[0];
+                    if (comp === nextComp) {
+                        nextComp = nextTerm.getConnections()[1];
+                    }
+                    prevTerm = nextTerm;
+                    comp = nextComp;
+                }
+                copyTerms.push(nextTerm);
+            }
+            // Once you find a terminal that is already in the loop, there may still be a dangling end at the start of the loop.
+            // That is, it may be shaped like a "9". So trim off the initial components until the start and end terminals are the same.
+            while (copyTerms[0] !== copyTerms[copyTerms.length - 1]) {
+                //trim terminals and components off start of lists
+                copyTerms.shift();
+                copyLoops[loopCounter].shift();
+                origLoops[loopCounter].shift();
+            }
+            // To find the next independent loop, remove a component (and dangling ends) from the loop you just found.
+            // That way you won't find the exact same loop the next time.
+            copy.removeComponent(copyLoops[loopCounter][0]);
+            let dangler = copy.getComponents()[0]; // just to be not null;
+            while (dangler !== null) {   // Remove one dangling component at a time, until there are no more
+                dangler = copy.removeDangler();
+            }
+            loopCounter++;
+        }
+        return copy.getNumBranches();
+    }
+
+    /**
      * Searches the 2-D array of terminals to find junctions. Adds any terminals that have three or more connections
      * to a List of nodes. The provided list of nodes is first cleared, and then repopulated.
      * @param nodes  A reference to a List of terminals.
@@ -86,8 +189,8 @@ class Circuit {
         if (this.components.length === 0) {
             return false;
         }
-        if (nodes.length === 0) {   // Circuit is a single loop without junctions (or a single incomplete complete)
-            let c = this.components.get(0);
+        if (nodes.length === 0) {   // Circuit is a single loop without junctions (or a single incomplete circuit)
+            let c = this.components[0];
             let prevTerm = c.getEndPt1();
             for (let i = 0; i < this.components.length; i++) {
                 c.setBranch(0);     // only one loop, so all components are branch 0
@@ -106,7 +209,7 @@ class Circuit {
                 c = nextComponent;
                 prevTerm = nextTerminal;
             }
-            numBranches = 1;    // the complete loop is one branch: branch #0
+            this.numBranches = 1;    // the complete loop is one branch: branch #0
         }
         else {   // there are multiple branches
             // Reset branch number of each component to -1, the default for unassigned branches

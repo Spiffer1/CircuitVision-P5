@@ -7,6 +7,7 @@ const gridSpacing = 80;
 
 function setup() {
     circuit = new Circuit(4, 4);
+
     this.setComponentToStrings();
 
     circuit.addBattery(new Battery(6), 1, 0, 2, 0, 1, 0);  // Extra two arguments set the positive end of the battery.
@@ -32,11 +33,16 @@ function setup() {
     circuit.addComponent(new Wire(), 3, 1, 3, 0);
     circuit.addComponent(new Wire(), 3, 0, 2, 0);
 
-    circuit.addComponent(new Wire(), 0, 2, 0, 3);  // Add a dangler
+/*
+    circuit.addComponent(new Wire(), 1, 2, 1, 3);
+    circuit.addComponent(new Wire(), 0, 2, 0, 3);
     circuit.addComponent(new Resistor(5), 0, 3, 1, 3);
+    circuit.addComponent(new Wire(), 0, 2, 1, 2);
+*/
+
     //circuit.removeDangler();
 
-    console.log(circuit.getComponent(1, 1, 2, 1).toString());
+    //console.log(circuit.getComponent(1, 1, 2, 1).toString());
 
     const nodes = [];
     circuit.findNodes(nodes);
