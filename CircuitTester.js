@@ -33,6 +33,13 @@ function setup() {
     circuit.addComponent(new Wire(), 3, 1, 3, 0);
     circuit.addComponent(new Wire(), 3, 0, 2, 0);
 
+    circuit.addComponent(new Wire(), 0, 2, 0, 3);       // add dangler
+    circuit.addComponent(new Resistor(5), 0, 3, 1, 3);
+
+    circuit.addComponent(new Wire(), 2, 2, 2, 3);       // another dangler
+
+    //circuit.addBattery(new Battery(5), 3, 1, 2, 1, 2, 1);  // Creates short circuit
+
 /*
     circuit.addComponent(new Wire(), 1, 2, 1, 3);
     circuit.addComponent(new Wire(), 0, 2, 0, 3);
@@ -44,10 +51,12 @@ function setup() {
 
     //console.log(circuit.getComponent(1, 1, 2, 1).toString());
 
-    const nodes = [];
-    circuit.findNodes(nodes);
-    circuit.labelBranches(nodes);
+    // const nodes = [];
+    // circuit.findNodes(nodes);
+    // circuit.labelBranches(nodes);
 
+    let currents = circuit.solve();
+    console.log(currents);
 }
 
 function draw() {

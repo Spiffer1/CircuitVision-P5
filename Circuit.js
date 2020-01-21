@@ -16,7 +16,7 @@ class Circuit {
         this.terminals = new Array(this.rows);
         this.components = [];
         this.numBranches = 0;
-        this.verbose = false;
+        this.verbose = true;
 
         // initialize Terminals
         for (let r = 0; r < this.rows; r++) {
@@ -26,6 +26,7 @@ class Circuit {
             }
         }
     }
+
 
     /**
      * Constructs a copy of a given circuit by adding in the same set of components. Information regarding
@@ -56,6 +57,223 @@ class Circuit {
         }
         return copy;
     }
+
+
+    /**
+     * This method uses several helper methods to solve a circuit via Kirchhoff's rules and linear algebra.
+     * After running it, each component will have been assigned a branch number, current, and a current direction;
+     * each Terminal will have a potential.
+     * @return  Number[]: Returns an array of currents. Each current is indexed by its branch number
+     * within the circuit. Returns null if short circuit or no complete circuit.
+     */
+    solve() {
+        // Re-initialize component values and terminal potentials
+        for (let c of this.components) {
+            c.setBranch(-1);
+            c.setCurrent(0);
+            c.setCurrentDirection(null);
+        }
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                this.terminals[r][c].setPotential(Number.MAX_VALUE);
+            }
+        }
+
+        const nodes = [];
+        const loops = [];
+        this.numBranches = this.findNodesAndLoops(nodes, loops);    // Originally declared as a local var; think it should be instance var
+        if (this.verbose) {
+            console.log("Number of nodes: " + nodes.length);
+            console.log("Number of loops: " + loops.length);
+            console.log("Number of branches: " + this.numBranches);
+        }
+        if (this.numBranches === 0) {  // No complete circuit
+            return null;
+        }
+
+        if (this.isShortCircuit()) {
+            return null;
+        }
+
+        if (this.verbose) {
+            console.log("The stored loops are:\n");
+            for (let i = 0; i < loops.length; i++) {
+                console.log("Loop " + i);
+                const loop = loops[i];
+                for (let c of loop) {
+                    console.log("Loop: " + c + "  branch: " + c.getBranch());
+                }
+                console.log("\n");
+            }
+        }
+
+        // ****************************************************
+        // Generate equation matrices from nodes and loops.
+        let coefficients;  // a 2-D array of Numbers
+        let constants;     // a 1-D array of Numbers
+        const matrixRows = nodes.length - 1 + loops.length;
+        const matrixCols = this.numBranches;
+        if (this.numBranches === 1) {
+            coefficients = new Array(1);
+            coefficients[0] = new Array(1);
+            constants = new Array(1);
+        }
+        else {
+            coefficients = new Array(matrixRows).fill().map(() => Array(matrixCols).fill(0));    // coefficient and constant terms for Kirchhoff's rules equations
+            constants = new Array(matrixRows);
+        }
+
+        if (this.verbose) {
+            if (this.numBranches === 1) {
+                console.log("Coefficients dimensions are: 1 x 1");
+            }
+            else {
+                console.log("Coefficients dimensions are: " + (matrixRows) + " x " + matrixCols);
+            }
+        }
+        // Get equations from nodes: Kirchoff's junction rule. Coefficients in the equations are all 1's
+        // (for currents flowing into the junction) or -1's (for currents that are flowing out of the junction).
+        // The constant term for each equation is 0.
+        let eqnNum = 0;
+        for ( ; eqnNum < nodes.length - 1; eqnNum++) {
+            for (let c of nodes[eqnNum].getConnections()) {     // loops through all components connected to this node...
+                if (c.getCurrentDirection().equals(nodes[eqnNum])) {  // if the current direction of this component is the same as the node,
+                    coefficients[eqnNum][c.getBranch()] = 1;            // then current is flowing into the node
+                }
+                else {
+                    coefficients[eqnNum][c.getBranch()] = -1;             // otherwise it's flowing out of the node
+                }
+            }
+            constants[eqnNum] = 0;
+        }
+        // Get equations from loops
+        const nodeEqns = eqnNum;
+        for ( ; eqnNum < loops.length + nodeEqns; eqnNum++) {    // for each loop in circuit...
+            loops[eqnNum - nodeEqns].push(loops[eqnNum - nodeEqns][0]); // duplicate the first component at the end of the loop
+            let voltageDrop = 0;
+            for (let i = 0; i < loops[eqnNum - nodeEqns].length - 1; i++) {  // add voltage drops from each component in the loop
+                const c = loops[eqnNum - nodeEqns][i];               // (except the last one, which is a repeat of the first)
+                const nextComponent = loops[eqnNum - nodeEqns][i + 1];
+                let connectedToNextComponent = false;
+                for (let aConnectedComponent of c.getCurrentDirection().getConnections()) {  // Test whether the currentDirection
+                    if (nextComponent.equals(aConnectedComponent)) {     // end of the component is connected to the next component in the loop...
+                        connectedToNextComponent = true;
+                    }
+                }
+                if (connectedToNextComponent) {  // If so you are walking around the loop in the component's current direction
+                    coefficients[eqnNum][c.getBranch()] += c.getResistance();   // so you add the voltage drop.
+                }
+                else {                           // Walking around loop opposite the "labeled" current direction,
+                    coefficients[eqnNum][c.getBranch()] -= c.getResistance();   // so it's a "negative" current and you subtract the voltage drop.
+                }
+            }
+
+            // The constant term in each loop equation is due to a Voltage gain from a battery. Let's find these
+            let voltageGain = 0;
+            for (let i = 0; i < loops[eqnNum - nodeEqns].length - 1; i++) {  // go through all components in loop except last one (a repeat of the first)
+                const c = loops[eqnNum - nodeEqns][i];
+                if (c instanceof Battery) {
+                    const nextComponent = loops[eqnNum - nodeEqns][i + 1];
+                    let connectedToNextComponent = false;
+                    // Determine whether the direction you are walking through the loop is from the neg. to pos. terminal of the battery
+                    for (let aConnectedComponent of c.getPosEnd().getConnections()) {
+                        if (nextComponent.equals(aConnectedComponent)) {  // if the posive end is connected to the next component in the loop...
+                            connectedToNextComponent = true;
+                        }
+                    }
+                    if (connectedToNextComponent) {
+                        voltageGain += c.getVoltage();            // then it's a voltage gain. (Walking through battery from neg to pos.)
+                    }
+                    else {
+                        voltageGain -= c.getVoltage();   // Otherwise you are walking around the loop from pos to neg through the battery.
+                    }
+                }
+            }
+            constants[eqnNum] = voltageGain;
+            loops[eqnNum - nodeEqns].pop();     // Remove the last component from the loop (the duplicate of first component)
+        }
+
+        if (this.verbose) {
+            // Print coefficient Matrix and Constant vector
+            console.log("Coefficients:\n");
+            for (let r = 0; r < coefficients.length; r++) {
+                for (let c = 0; c < coefficients[r].length; c++) {
+                    console.log(coefficients[r][c] + "  ");
+                }
+                console.log("\n");
+            }
+            console.log("Constants:\n");
+            for (let i = 0; i < constants.length; i++) {
+                console.log(constants[i] + "  ");
+            }
+            console.log("\n");
+        }
+
+        // *************************************************************
+        // Solve Kirchoff's Rules equation matrix with Gaussian Elimination (see gauss-jordan.js)
+        const currents = linearEqnSolve(coefficients, constants);
+
+        //***************************************************************
+
+        // Update component currents
+        for (let c of this.components) {
+            if (c.getBranch() < 999) {
+                c.setCurrent(currents[c.getBranch()]);
+            }
+            else {
+                c.setCurrent(0);
+            }
+        }
+
+        if (this.verbose) {
+            console.log(this);
+        }
+
+        this.calculatePotentials(loops, nodes);
+
+        if (this.verbose) {
+            console.log("Terminal potentials:");
+            for (let r = 0; r < this.rows; r++) {
+                for (let c = 0; c < this.cols; c++) {
+                    console.log(this.terminals[r][c].getPotential() + "\t");
+                }
+                console.log("\n");
+            }
+            console.log("\n");
+        }
+
+        return currents;
+    }
+
+
+    /**
+     * Identifies if a short circuit exists: i.e. a complete loop with no resistors and at least one battery.
+     * @return True if short circuit exists; false otherwise.
+     */
+    isShortCircuit() {
+        let isShort = false;
+        const copy = this.clone(this);
+        for (let i = copy.getComponents().length - 1; i >= 0; i--) {
+            const c = copy.getComponents()[i];
+            if (c instanceof Resistor) {
+                copy.removeComponent(c);
+            }
+        }
+        const nodes = [];
+        const loops = [];
+        const copyBranches = copy.findNodesAndLoops(nodes, loops);
+        if (copyBranches !== 0) {  // At least one loop found
+            for (let loop of loops) {
+                for (let c of loop) {
+                    if (c instanceof Battery) {
+                        isShort = true;
+                    }
+                }
+            }
+        }
+        return isShort;
+    }
+
 
     /**
      * This method uses helper methods to:
@@ -160,6 +378,7 @@ class Circuit {
         return copy.getNumBranches();
     }
 
+
     /**
      * Searches the 2-D array of terminals to find junctions. Adds any terminals that have three or more connections
      * to a List of nodes. The provided list of nodes is first cleared, and then repopulated.
@@ -175,6 +394,7 @@ class Circuit {
             }
         }
     }
+
 
     /**
      * Labels each component in the circuit with a branch number. The currents through all components in a branch are the same,
@@ -267,6 +487,7 @@ class Circuit {
         return true;
     }
 
+
     /**
      * If a circuit has dead-ends, this method removes the last component in a dead-end branch.
      * @return Component: If a component is removed, returns a wire that has same endpoints as
@@ -289,6 +510,98 @@ class Circuit {
         }
         return null;
     }
+
+
+    /**
+     * Sets the potential at each terminal in the circuit. Disconnected terminals are left at their default potental
+     * of Number.MAX_VALUE.
+     * @param loops  An array of the arrays of components in each circuit loop
+     * @param nodes  An array of the circuit nodes/junctions
+     */
+    calculatePotentials(loops, nodes) {
+        // Find a terminal in a loop; assign it potential 0
+        const comp = loops[0][0];
+        comp.getEndPt1().setPotential(0);
+
+        // Make a copy of the circuit components. Loop through all copied components finding those that have a potential set at only one end.
+        // Then calculate and set potential for the other end and remove that component from the copy List.
+        const componentsCopy = [];
+        for (let c of this.components) {
+            componentsCopy.push(c);
+        }
+
+        let updateOccurred = true;
+        while (updateOccurred) {
+            updateOccurred = false;
+            for (let i  = 0; i < componentsCopy.length; i++) {
+                const c = componentsCopy[i];
+                const potential1 = c.getEndPt1().getPotential();
+                const potential2 = c.getEndPt2().getPotential();
+                if (potential1 < Number.MAX_VALUE / 10 && potential2 >= Number.MAX_VALUE / 10 || potential2 < Number.MAX_VALUE / 10 && potential1 >= Number.MAX_VALUE / 10) {
+                    // Other end's potential is known end's potential + component's voltage gain
+                    let knownEnd = c.getEndPt1();
+                    let otherEnd = c.getEndPt2();
+                    if (knownEnd.getPotential() >= Number.MAX_VALUE / 10) {
+                        knownEnd = c.getEndPt2();
+                        otherEnd = c.getEndPt1();
+                    }
+
+                    if (c instanceof Battery) {
+                        if ( knownEnd.equals(c.getPosEnd()) ) {
+                            otherEnd.setPotential(knownEnd.getPotential() - c.getVoltage());
+                        }
+                        else {
+                            otherEnd.setPotential(knownEnd.getPotential() + c.getVoltage());
+                        }
+                    }
+                    else {
+                        if (c.getBranch() < 999) {
+                            if (c.getCurrentDirection() !== null && c.getCurrentDirection().equals(knownEnd)) {
+                                otherEnd.setPotential(knownEnd.getPotential() + c.getResistance() * c.getCurrent());
+                            }
+                            else {
+                                otherEnd.setPotential(knownEnd.getPotential() - c.getResistance() * c.getCurrent());
+                            }
+                        }
+                        else {
+                            otherEnd.setPotential(knownEnd.getPotential());
+                        }
+                    }
+                    updateOccurred = true;
+                    componentsCopy.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        // Add or subtract to all the potentials so that the minimum potential is 0 Volts
+        let minVolts = this.terminals[0][0].getPotential();
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (this.terminals[r][c].getPotential() < minVolts) {
+                    minVolts = this.terminals[r][c].getPotential();
+                }
+            }
+        }
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (this.terminals[r][c].getPotential() !== Number.MAX_VALUE) {
+                    this.terminals[r][c].setPotential(this.terminals[r][c].getPotential() - minVolts);
+                }
+            }
+        }
+
+        // Loop through any remaining components in componentsCopy. If their terminal potentials are still Double.MAX_VALUE,
+        // set them to 0. These would be components not connected to any complete circuit.
+        // This may not be correct, since these components may include a battery, or even a separate complete circuit...
+        for (let c of componentsCopy) {
+            if (c.getEndPt1().getPotential() >= Number.MAX_VALUE / 10) {
+                c.getEndPt1().setPotential(0);
+                c.getEndPt2().setPotential(0);
+            }
+        }
+    }
+
 
     /**
      * Adds a component to a to a specific location in a circuit. Ordinarily this is performed only when first specifying
@@ -319,6 +632,7 @@ class Circuit {
         return true;
     }
 
+
     /**
      * Like addComponent, but used only for batteries.
      * @param b  Battery: The battery to be added
@@ -344,6 +658,7 @@ class Circuit {
         return true;
     }
 
+
     /**
      * Given a component (givenComp) in one circuit (or about to be added in one circuit),
      * this method finds the component attached to the same terminals
@@ -362,6 +677,7 @@ class Circuit {
         return null;
     }
 
+
     /**
      * Removes a component from a given location in a circuit.  This method can be used in the process
      * of desiging a circuit. It also gets used on a copy of the original circuit while identifying independent loops.
@@ -374,6 +690,7 @@ class Circuit {
         const component = this.getComponent(r1, c1, r2, c2);
         this.removeComponent(component);
     }
+
 
     /**
      * Removes the given component from a circuit. This method can be used in the process
@@ -390,6 +707,7 @@ class Circuit {
         component.setEndPt1(null);
         component.setEndPt2(null);
     }
+
 
     /**
      * Returns the component from a specified location in a circuit.
@@ -408,6 +726,7 @@ class Circuit {
         return null;
     }
 
+
     /**
      * @param row  int: The row of the desired terminal
      * @param col  int: The column of the desired terminal.
@@ -417,12 +736,14 @@ class Circuit {
         return this.terminals[row][col];
     }
 
+
     /**
      * @return  int: Returns the number of rows of terminals in the circuit
      */
     getRows() {
         return this.rows;
     }
+
 
     /**
      * @return  int: Returns the number of columns of terminals in the circuit
@@ -431,6 +752,7 @@ class Circuit {
         return this.cols;
     }
 
+
     /**
      * @return  int: Returns the number independent branches in the circuit, excluding any branches that do not form complete circuits
      */
@@ -438,12 +760,14 @@ class Circuit {
         return this.numBranches;
     }
 
+
     /**
      * @return  Terminal[]: Returns a reference to the 2D array of terminals in the circuit
      */
     getTerminals() {
         return this.terminals;
     }
+
 
     /**
      * @return  Component[]: Returns a reference to the ArrayList of components in the circuit
