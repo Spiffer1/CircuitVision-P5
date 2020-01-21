@@ -37,7 +37,7 @@ class Dot {
                 //textAlign(LEFT);
                 fill(255);
                 textSize(10);
-                text(potential.toString() + " V", x + 3, y - 8);
+                text(potential.toString() + " V", this.x + 3, this.y - 8);
             }
         }
     }
@@ -57,7 +57,7 @@ class Dot {
     getRow() {
         return this.row;
     }
-    
+
 
     /**
      * @return  int: This dot's column.
