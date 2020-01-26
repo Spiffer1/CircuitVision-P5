@@ -26,18 +26,18 @@ class Dot {
      * @param showValues  boolean: Determines whether voltages are displayed next to Dots
      */
     display(circuit, showValues = false) {
-        stroke(0);
-        fill(0);
-        ellipse(this.x, this.y, 5, 5);
+        circuitCanvas.stroke(0);
+        circuitCanvas.fill(0);
+        circuitCanvas.ellipse(this.x, this.y, 5, 5);
         if (showValues) {
             const term = circuit.getTerminal(this.row, this.col);
             let potential = term.getPotential();
             if (potential < Number.MAX_VALUE / 10) {
                 potential = Math.round(potential * 1000) / 1000;     // round to nearest thousandth
                 //textAlign(LEFT);
-                fill(255);
-                textSize(10);
-                text(potential.toString() + " V", this.x + 3, this.y - 8);
+                circuitCanvas.fill(255);
+                circuitCanvas.textSize(10);
+                circuitCanvas.text(potential.toString() + " V", this.x + 3, this.y - 8);
             }
         }
     }
