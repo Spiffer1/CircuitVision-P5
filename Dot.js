@@ -47,7 +47,7 @@ class Dot {
      * @return Number: distance in pixels from this dot to the last mouse click.
      */
     distanceToMouse() {
-        return Math.sqrt((this.x - mouseX) ** 2 + (this.y - mouseY) ** 2);
+        return Math.sqrt((this.x - circuitCanvas.mouseX) ** 2 + (this.y - circuitCanvas.mouseY) ** 2);
     }
 
 

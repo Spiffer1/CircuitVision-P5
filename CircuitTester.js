@@ -10,6 +10,7 @@ function setup() {
 
     this.setComponentToStrings();
 
+/* Create a big circuit
     circuit.addBattery(new Battery(6), 1, 0, 2, 0, 1, 0);  // Extra two arguments set the positive end of the battery.
     circuit.addComponent(new Wire(), 1, 0, 0, 0);
     circuit.addComponent(new Wire(), 0, 0, 0, 1);
@@ -37,6 +38,7 @@ function setup() {
     circuit.addComponent(new Resistor(5), 0, 3, 1, 3);
 
     circuit.addComponent(new Wire(), 2, 2, 2, 3);       // another dangler
+/*
 
     //circuit.addBattery(new Battery(5), 3, 1, 2, 1, 2, 1);  // Creates short circuit
 
@@ -46,6 +48,16 @@ function setup() {
     circuit.addComponent(new Resistor(5), 0, 3, 1, 3);
     circuit.addComponent(new Wire(), 0, 2, 1, 2);
 */
+
+    // Create a minimal circuit
+    circuit.addBattery(new Battery(6), 1, 0, 2, 0, 1, 0);  // Extra two arguments set the positive end of the battery.
+    circuit.addComponent(new Wire(), 1, 0, 1, 1);
+    circuit.addComponent(new Resistor(10), 1, 1, 2, 1);
+    circuit.addComponent(new Resistor(10), 2, 1, 3, 1);
+    circuit.addComponent(new Wire(), 3, 1, 3, 0);
+    circuit.addComponent(new Wire(), 3, 0, 2, 0);
+
+
 
     //circuit.removeDangler();
 

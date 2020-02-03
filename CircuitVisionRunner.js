@@ -50,6 +50,16 @@ const circuitSketch = (p) => {
     p.showAmps;
     p.shortCircuitWarning;
 
+    p.wireButton;         // references to buttons
+    p.resistorButton;
+    p.batteryButton;
+    p.removeButton;
+
+    // p.wireMode;         // booleans corresponding to which button is pressed
+    // p.resistorMode;
+    // p.batteryMode;
+    // p.removeMode;
+
     p.circuitMode;    // int: 1: add resistor; 2: add wire; 3: add battery; 4: remove component; 0: no mode selected
 
     // make 2D array to hold Dot objects (initially all null). These will be the terminals shown on the screen
@@ -70,7 +80,26 @@ const circuitSketch = (p) => {
         // make new Circuit object
         circuit = new Circuit(terminalRows, terminalCols);
 
+        p.wireButton = p.createButton("Add Wire");
+        p.resistorButton = p.createButton("Add Resistor");
+        p.resistorText = p.createInput("10");
+        p.resistorText.size(40, 15);
+        p.batteryButton = p.createButton("Add Battery");
+        p.batteryText = p.createInput("6");
+        p.batteryText.size(40, 15);
+        p.removeButton = p.createButton("Remove Component");
 
+        p.wireButton.mousePressed(p.toggleWire);   // when button is pressed, callback function is called
+        p.resistorButton.mousePressed(p.toggleResistor);
+        p.batteryButton.mousePressed(p.toggleBattery);
+        p.removeButton.mousePressed(p.toggleRemove);
+
+        // Initially in "Add Battery" mode
+        p.toggleBattery();
+
+
+
+/*
 // **************************  ADD TEST CIRCUIT COMPONENTS  ******************
         // this.setComponentToStrings();
 
@@ -102,7 +131,7 @@ const circuitSketch = (p) => {
 
         circuit.addComponent(new Wire(), 2, 2, 2, 3);       // another dangler
 
-        //circuit.addBattery(new Battery(5), 3, 1, 2, 1, 2, 1);  // Creates short circuit
+        circuit.addBattery(new Battery(5), 3, 1, 2, 1, 2, 1);  // Creates short circuit
 
         /*
         circuit.addComponent(new Wire(), 1, 2, 1, 3);
@@ -119,9 +148,9 @@ const circuitSketch = (p) => {
         // circuit.findNodes(nodes);
         // circuit.labelBranches(nodes);
 
-        let currents = circuit.solve();
+        //let currents = circuit.solve();
 
-//************************ FINISH ADDING TEST CIRCUIT COMPONENTS  8***********
+// ************************ FINISH ADDING TEST CIRCUIT COMPONENTS  ***********
 
 
 
@@ -136,6 +165,92 @@ const circuitSketch = (p) => {
     p.draw = () => {
         p.background(150);
         p.drawCircuit();
+    }
+
+    // If mouse clicked in circuit area, add (or remove) component
+    p.mouseClicked  = () => {
+        const mX = p.mouseX;
+        const mY = p.mouseY;
+        if (mX >= 0 && mX < p.width && mY >= 0 && mY < p.height) {
+            p.animating = false;
+        }
+        // Determine two terminals (row and column) that click was between
+        let closest = p.dots[0][0];
+        let nextClosest = p.dots[0][0];
+        let minDist = gridSpacing;
+        let minDist2 = gridSpacing;
+        for (let r = 0; r < terminalRows; r++) {
+            for (let c = 0; c < terminalCols; c++) {
+                const dist = p.dots[r][c].distanceToMouse();
+                if (dist < minDist) {
+                    nextClosest = closest;
+                    minDist2 = minDist;
+                    closest = p.dots[r][c];
+                    minDist = dist;
+                }
+                else if (dist < minDist2) {
+                    nextClosest = p.dots[r][c];
+                    minDist2 = dist;
+                }
+            }
+        }
+        const r1 = closest.getRow();
+        const c1 = closest.getCol();
+        const r2 = nextClosest.getRow();
+        const c2 = nextClosest.getCol();
+        // Add component to circuit model
+        if (minDist < gridSpacing && minDist2 < gridSpacing) {
+            // get component between those terminals (null if none)
+            const c = circuit.getComponent(r1, c1, r2, c2);
+            if (c !== null && p.circuitMode === 4) {
+                circuit.removeComponent(c);
+            }
+            else if (c !== null) {
+                if (c instanceof Resistor) {
+                    const r = Number(p.resistorText.value());
+                    if (r > 0) {
+                        c.setResistance(r);
+                        // ((Toggle)cp5.getController("showVolts")).setState(false);
+                        // ((Toggle)cp5.getController("showAmps")).setState(false);
+                        // ((Toggle)cp5.getController("animateModel")).setState(false);
+                    }
+                }
+                if (c instanceof Battery) {
+                    if (minDist2 - minDist < gridSpacing / 3) {  // If you click near the middle of the battery...
+                        const v = Number(p.batteryText.value());
+                        if (v > 0) {
+                            c.setVoltage(v);
+                            //         ((Toggle)cp5.getController("showVolts")).setState(false);
+                            //         ((Toggle)cp5.getController("showAmps")).setState(false);
+                            //         ((Toggle)cp5.getController("animateModel")).setState(false);
+                        }
+
+                    }
+                    else {   // If you click near the end of the battery...
+                        c.setPosEnd(circuit.getTerminal(r1, c1));    // ...that end becomes the positive terminal
+                    }
+                }
+            }
+            else if (c === null) {
+                if (p.circuitMode === 1) {
+                    const r = Number(p.resistorText.value());
+                    if (r <= 0) {
+                        r = 10;
+                    }
+                    circuit.addComponent(new Resistor(r), r1, c1, r2, c2);
+                }
+                if (p.circuitMode === 2) {
+                    circuit.addComponent(new Wire(), r1, c1, r2, c2);
+                }
+                if (p.circuitMode === 3) {
+                    const v = Number(p.batteryText.value());
+                    if (v <= 0) {
+                        v = 6;
+                    }
+                    circuit.addBattery(new Battery(v), r1, c1, r2, c2, r1, c1);  // pos end is dot closest to click
+                }
+            }
+        }
     }
 
     p.drawCircuit = () => {
@@ -295,6 +410,68 @@ const circuitSketch = (p) => {
             p.textAlign(p.LEFT);
             p.text("Short Circuit or Incomplete Circuit!", 150, 150);
         }
+    }
+
+    // The following are callback functions defining button functionalities
+    p.toggleWire = () => {
+        if (p.shortCircuitWarning) {
+            p.shortCircuitWarning = false;
+        }
+        p.circuitMode = 2;
+        // p.wireMode = true;
+        // p.batteryMode = false;
+        // p.resistorMode = false;
+        // p.removeMode = false;
+        // toggle button colors
+        p.wireButton.style("background-color", "green");    // changes css style
+        p.resistorButton.style("background-color", "white");
+        p.batteryButton.style("background-color", "white");
+        p.removeButton.style("background-color", "white");
+    }
+
+    p.toggleResistor = () => {
+        if (p.shortCircuitWarning) {
+            p.shortCircuitWarning = false;
+        }
+        p.circuitMode = 1;
+        // p.resistorMode = true;
+        // p.batteryMode = false;
+        // p.wireMode = false;
+        // p.removeMode = false;
+        p.wireButton.style("background-color", "white");
+        p.resistorButton.style("background-color", "green");
+        p.batteryButton.style("background-color", "white");
+        p.removeButton.style("background-color", "white");
+    }
+
+    p.toggleBattery = () => {
+        if (p.shortCircuitWarning) {
+            p.shortCircuitWarning = false;
+        }
+        p.circuitMode = 3;
+        // p.batteryMode = true;
+        // p.resistorMode = false;
+        // p.wireMode = false;
+        // p.removeMode = false;
+        p.wireButton.style("background-color", "white");
+        p.resistorButton.style("background-color", "white");
+        p.batteryButton.style("background-color", "green");
+        p.removeButton.style("background-color", "white");
+    }
+
+    p.toggleRemove = () => {
+        if (p.shortCircuitWarning) {
+            p.shortCircuitWarning = false;
+        }
+        p.circuitMode = 4;
+        // p.removeMode = true;
+        // p.batteryMode = false;
+        // p.resistorMode = false;
+        // p.wireMode = false;
+        p.wireButton.style("background-color", "white");
+        p.resistorButton.style("background-color", "white");
+        p.batteryButton.style("background-color", "white");
+        p.removeButton.style("background-color", "green");
     }
 }
 

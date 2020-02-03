@@ -115,8 +115,8 @@ class Circuit {
         const matrixCols = this.numBranches;
         if (this.numBranches === 1) {
             coefficients = new Array(1);
-            coefficients[0] = new Array(1);
-            constants = new Array(1);
+            coefficients[0] = [0];
+            constants = [0];
         }
         else {
             coefficients = new Array(matrixRows).fill().map(() => Array(matrixCols).fill(0));    // coefficient and constant terms for Kirchhoff's rules equations

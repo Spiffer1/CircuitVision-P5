@@ -1,7 +1,7 @@
 // Two canvases created using P5's "Instance Mode"
 // See Coding Train tutorial 9.11
 
-let circuitSketch = function(p) {
+const circuitSketch = function(p) {
   p.x = 0;
   p.y = 0;
   p.speedX = 1;
