@@ -41,8 +41,8 @@ let ampScale = 0.5;    // Number (decimal)
 let rotationEnabled = false;    // boolean
 
 const circuitSketch = (p) => {
-    p.gridX = 200;    // the x and y for the upper left terminal (Dot) on the screen
-    p.gridY = 100;
+    p.gridX = 80;    // the x and y for the upper left terminal (Dot) on the screen
+    p.gridY = 80;
 
     p.newAnimation;         // boleans...
     p.animating;
@@ -54,11 +54,9 @@ const circuitSketch = (p) => {
     p.resistorButton;
     p.batteryButton;
     p.removeButton;
-
-    // p.wireMode;         // booleans corresponding to which button is pressed
-    // p.resistorMode;
-    // p.batteryMode;
-    // p.removeMode;
+    p.showVoltsButton;
+    p.showAmpsButton;
+    p.animateButton;
 
     p.circuitMode;    // int: 1: add resistor; 2: add wire; 3: add battery; 4: remove component; 0: no mode selected
 
@@ -88,11 +86,17 @@ const circuitSketch = (p) => {
         p.batteryText = p.createInput("6");
         p.batteryText.size(40, 15);
         p.removeButton = p.createButton("Remove Component");
+        p.showVoltsButton = p.createButton("Show Volts", "off");  // arguments: text to display, button-values
+        p.showAmpsButton = p.createButton("Show Amps", "off");
+        p.animateButton = p.createButton("Animate 3D Model");
 
         p.wireButton.mousePressed(p.toggleWire);   // when button is pressed, callback function is called
         p.resistorButton.mousePressed(p.toggleResistor);
         p.batteryButton.mousePressed(p.toggleBattery);
         p.removeButton.mousePressed(p.toggleRemove);
+        p.showVoltsButton.mousePressed(p.toggleShowVolts);
+        p.showAmpsButton.mousePressed(p.toggleShowAmps);
+        p.animateButton.mousePressed(p.animateModel);
 
         // Initially in "Add Battery" mode
         p.toggleBattery();
@@ -258,7 +262,7 @@ const circuitSketch = (p) => {
         for (let row = 0; row < terminalRows; row++) {
             for (let col = 0; col < terminalCols; col++) {
                 if (p.showVolts) {
-                    circuitCanvas.textAlign(LEFT);
+                    circuitCanvas.textAlign(circuitCanvas.LEFT);
                 }
                 p.dots[row][col].display(circuit, p.showVolts);
             }
@@ -278,7 +282,8 @@ const circuitSketch = (p) => {
                     const startX = Math.min(x1, x2) + (gridSpacing - 26) / 2;
                     // Display Resistance
                     p.textAlign(p.CENTER);
-                    p.textSize(12);
+                    p.textSize(14);
+                    p.noStroke();
                     p.fill(0);
                     p.text(c.getResistance(), startX + 13, y1 - 10);
 
@@ -296,7 +301,8 @@ const circuitSketch = (p) => {
                 else {   // vertical resistor
                     const startY = Math.min(y1, y2) + (gridSpacing - 26) / 2;
                     p.textAlign(p.RIGHT);
-                    p.textSize(12);
+                    p.textSize(14);
+                    p.noStroke();
                     p.fill(0);
                     p.text(c.getResistance(), x1 - 8, startY + 17);
                     p.stroke(0);
@@ -318,7 +324,8 @@ const circuitSketch = (p) => {
                     p.translate(x0 + gridSpacing / 2, y1);
 
                     p.textAlign(p.CENTER);
-                    p.textSize(12);
+                    p.textSize(14);
+                    p.noStroke();
                     p.fill(0);
                     p.text(c.getVoltage(), 0, -12 );
 
@@ -331,7 +338,8 @@ const circuitSketch = (p) => {
                     p.translate(x1, y0 + gridSpacing / 2);
 
                     p.textAlign(p.RIGHT);
-                    p.textSize(12);
+                    p.textSize(14);
+                    p.noStroke();
                     p.fill(0);
                     p.text(c.getVoltage(), -11, 4 );
 
@@ -369,7 +377,7 @@ const circuitSketch = (p) => {
                 }
                 p.stroke(255);
                 p.fill(255);
-                p.textSize(10);
+                p.textSize(12);
                 let current = Math.abs(c.getCurrent());
                 current = Math.round(current * 10000) / 10000;   // 4 decimal places on current
                 if (y1 === y2) {  // a horizontal component
@@ -385,6 +393,7 @@ const circuitSketch = (p) => {
                     }
                     // Display number of amps
                     p.textAlign(p.CENTER);
+                    p.noStroke();
                     p.text(current + " A", (x1 + x2) / 2, y1 + 23 );
                 }
                 else {   // a vertical component
@@ -400,12 +409,14 @@ const circuitSketch = (p) => {
                     }
                     // Display number of amps
                     p.textAlign(p.LEFT);
+                    p.noStroke();
                     p.text(current + " A", x1 + 13, (y1 + y2) / 2 + 5 );
                 }
             }
         }
         if (p.shortCircuitWarning) {
             p.textSize(18);
+            p.noStroke();
             p.fill(255, 0, 0);
             p.textAlign(p.LEFT);
             p.text("Short Circuit or Incomplete Circuit!", 150, 150);
@@ -417,12 +428,9 @@ const circuitSketch = (p) => {
         if (p.shortCircuitWarning) {
             p.shortCircuitWarning = false;
         }
+        p.showVolts = false;
+        p.showAmps = false;
         p.circuitMode = 2;
-        // p.wireMode = true;
-        // p.batteryMode = false;
-        // p.resistorMode = false;
-        // p.removeMode = false;
-        // toggle button colors
         p.wireButton.style("background-color", "green");    // changes css style
         p.resistorButton.style("background-color", "white");
         p.batteryButton.style("background-color", "white");
@@ -433,11 +441,9 @@ const circuitSketch = (p) => {
         if (p.shortCircuitWarning) {
             p.shortCircuitWarning = false;
         }
+        p.showVolts = false;
+        p.showAmps = false;
         p.circuitMode = 1;
-        // p.resistorMode = true;
-        // p.batteryMode = false;
-        // p.wireMode = false;
-        // p.removeMode = false;
         p.wireButton.style("background-color", "white");
         p.resistorButton.style("background-color", "green");
         p.batteryButton.style("background-color", "white");
@@ -448,11 +454,9 @@ const circuitSketch = (p) => {
         if (p.shortCircuitWarning) {
             p.shortCircuitWarning = false;
         }
+        p.showVolts = false;
+        p.showAmps = false;
         p.circuitMode = 3;
-        // p.batteryMode = true;
-        // p.resistorMode = false;
-        // p.wireMode = false;
-        // p.removeMode = false;
         p.wireButton.style("background-color", "white");
         p.resistorButton.style("background-color", "white");
         p.batteryButton.style("background-color", "green");
@@ -463,15 +467,86 @@ const circuitSketch = (p) => {
         if (p.shortCircuitWarning) {
             p.shortCircuitWarning = false;
         }
+        p.showVolts = false;
+        p.showAmps = false;
         p.circuitMode = 4;
-        // p.removeMode = true;
-        // p.batteryMode = false;
-        // p.resistorMode = false;
-        // p.wireMode = false;
         p.wireButton.style("background-color", "white");
         p.resistorButton.style("background-color", "white");
         p.batteryButton.style("background-color", "white");
         p.removeButton.style("background-color", "green");
+    }
+
+    p.toggleShowVolts = () => {
+        if (p.showVoltsButton.value() === "off") {
+            p.showVoltsButton.value("on");
+            p.showVoltsButton.html("Hide Volts");
+            circuitMode = 0;
+            p.wireButton.style("background-color", "white");
+            p.resistorButton.style("background-color", "white");
+            p.batteryButton.style("background-color", "white");
+            p.removeButton.style("background-color", "white");
+            const currents = circuit.solve();
+            if (currents === null) {
+                p.animating = false;
+                p.showVolts = false;
+                //((Toggle)cp5.getController("showVolts")).setState(false);
+                p.shortCircuitWarning = true;
+            }
+            else {
+                p.showVolts = true;
+            }
+        }
+        else {
+            p.showVoltsButton.value("off");
+            p.showVoltsButton.html("Show Volts");
+            p.showVolts = false;
+        }
+    }
+
+    p.toggleShowAmps = () => {
+        if (p.showAmpsButton.value() === "off") {
+            p.showAmpsButton.value("on");
+            p.showAmpsButton.html("Hide Amps");
+            circuitMode = 0;
+            p.wireButton.style("background-color", "white");
+            p.resistorButton.style("background-color", "white");
+            p.batteryButton.style("background-color", "white");
+            p.removeButton.style("background-color", "white");
+            const currents = circuit.solve();
+            if (currents === null) {
+                p.animating = false;
+                p.showAmps = false;
+                //((Toggle)cp5.getController("showVolts")).setState(false);
+                p.shortCircuitWarning = true;
+            }
+            else {
+                p.showAmps = true;
+            }
+        }
+        else {
+            p.showAmpsButton.value("off");
+            p.showAmpsButton.html("Show Amps");
+            p.showAmps = false;
+        }
+
+    }
+
+    p.animateModel = () => {
+        circuitMode = 0;
+        p.wireButton.style("background-color", "white");
+        p.resistorButton.style("background-color", "white");
+        p.batteryButton.style("background-color", "white");
+        p.removeButton.style("background-color", "white");
+        const currents = circuit.solve();
+        if (currents === null) {
+            p.animating = false;
+            //((Toggle)cp5.getController("showAmps")).setState(false);
+            p.shortCircuitWarning = true;
+        }
+        else  {
+            p.newAnimation = true;
+            p.animating = true;
+        }
     }
 }
 
