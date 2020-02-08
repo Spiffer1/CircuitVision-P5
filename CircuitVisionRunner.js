@@ -30,9 +30,12 @@
  */
 
 let circuit;    // Circuit: holds the circuit model
-let terminalRows = 4;
-let terminalCols = 4;
-let gridSpacing = 80;
+const terminalRows = 4;
+const terminalCols = 4;
+const gridSpacing = 80;
+
+const animationSketchHeight = 400;
+const animationSketchWidth = 500;
 
 let scaleVolts = false;     // boolean: sets autoscaling by a toggle button
 let voltScale = 10;      // int
@@ -552,26 +555,36 @@ const circuitSketch = (p) => {
 
 
 
-/*
-let animationSketch = function(p) {
+const animationSketch = (p) => {
+    p.anim; // object of type Animation
 
-  p.setup = function() {
-    p.createCanvas(200, 200, p.WEBGL);
-  }
+    p.setup = () => {
+        p.createCanvas(animationSketchWidth, animationSketchHeight, p.WEBGL);
+        p.lights();
+        p.stroke(0);
+        p.frameRate(30);
+        //p.sphereDetail(6); // use two parameters when creating sphere, destailX and detailY
+    }
 
-  p.draw = function() {
-    p.background(200);
-    let colorVal = p.map(canvas1.x, 0, canvas1.width - 50, 0, 255);
-    let red = colorVal;
-    let green = p.map(canvas1.y, 0, canvas1.height - 50, 0, 255);;
-    let blue = 255 - colorVal;
-    p.fill(red, green, blue);
-    p.rotateX(p.frameCount * 0.01);
-    p.rotateY(p.frameCount * 0.02);
-    p.box(50);
-  }
+    p.draw = () => {
+        //background(100);
+        if (circuitCanvas.animating) {
+            if (circuitCanvas.newAnimation) {
+                p.anim = new Animation(this, circuit, gridSpacing, terminalRows, terminalCols, scaleVolts, voltScale, scaleAmps, ampScale, rotationEnabled);
+                voltScale = anim.VOLT_SCALE;
+                ampScale = anim.SPEED;  // oritinally extra java code to keep the string representation of ampScale the same as anim.SPEED
+                circuitCanvas.newAnimation = false;
+            }
+            p.ortho();
+            p.background(100);
+            p.fill(255);
+            anim.displayAnimation();
+            //redraw();
+        }
+    }
 }
-*/
+
+
 
 let circuitCanvas = new p5(circuitSketch);
-// let animationCanvas = new p5(animationSketch);
+let animationCanvas = new p5(animationSketch);
