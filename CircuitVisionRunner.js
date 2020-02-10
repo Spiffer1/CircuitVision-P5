@@ -38,9 +38,9 @@ const animationSketchHeight = 400;
 const animationSketchWidth = 500;
 
 let scaleVolts = false;     // boolean: sets autoscaling by a toggle button
-let voltScale = 10;      // int
+//let voltScale = 10;      // int
 let scaleAmps = false;    // boolean
-let ampScale = 0.5;    // Number (decimal)
+//let ampScale = 0.5;    // Number (decimal)
 let rotationEnabled = false;    // boolean
 
 const circuitSketch = (p) => {
@@ -541,6 +541,7 @@ const circuitSketch = (p) => {
         p.batteryButton.style("background-color", "white");
         p.removeButton.style("background-color", "white");
         const currents = circuit.solve();
+        console.log("Currents: " + currents);
         if (currents === null) {
             p.animating = false;
             //((Toggle)cp5.getController("showAmps")).setState(false);
@@ -570,16 +571,19 @@ const animationSketch = (p) => {
         //background(100);
         if (circuitCanvas.animating) {
             if (circuitCanvas.newAnimation) {
-                p.anim = new Animation(this, circuit, gridSpacing, terminalRows, terminalCols, scaleVolts, voltScale, scaleAmps, ampScale, rotationEnabled);
-                voltScale = anim.VOLT_SCALE;
-                ampScale = anim.SPEED;  // oritinally extra java code to keep the string representation of ampScale the same as anim.SPEED
+                p.anim = new Animation(circuit, gridSpacing, terminalRows, terminalCols, scaleVolts, scaleAmps, rotationEnabled);
+                //voltScale = p.anim.VOLT_SCALE;
+                //ampScale = p.anim.SPEED;  // originally extra java code to keep the string representation of ampScale the same as anim.SPEED
                 circuitCanvas.newAnimation = false;
             }
             p.ortho();
             p.background(100);
             p.fill(255);
-            anim.displayAnimation();
+            p.anim.displayAnimation();
             //redraw();
+
+            //console.log("Voltscale: " + voltScale);
+
         }
     }
 }

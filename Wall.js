@@ -6,11 +6,11 @@
          this.t1 = upstreamTower;
          this.t2 = downstreamTower;
          // Determine which tower is far and which is near.
-         this.farTower = t1;
-         this.nearTower = t2;
+         this.farTower = this.t1;
+         this.nearTower = this.t2;
          if (this.farTower.getZ() > this.nearTower.getZ() || this.farTower.getX() > this.nearTower.getX()) {
-             this.farTower = t2;
-             this.nearTower = t1;
+             this.farTower = this.t2;
+             this.nearTower = this.t1;
          }
          this.current = Math.abs(current_);
          this.readyForBall = false;
@@ -34,38 +34,48 @@
         }
 
         // draw wall starting at left/back tower.
-        animationCanvas.beginShape(animationCanvas.QUADS);
+        animationCanvas.beginShape();
         animationCanvas.vertex(0, 0, 0);
         animationCanvas.vertex(0, this.farTower.getHeight(), 0);
         animationCanvas.vertex(Animation.WALL_LEN, this.nearTower.getHeight(), 0);
         animationCanvas.vertex(Animation.WALL_LEN, 0, 0);
+        animationCanvas.endShape(animationCanvas.CLOSE);
 
+        animationCanvas.beginShape();
         animationCanvas.vertex(Animation.WALL_LEN, 0, 0);
         animationCanvas.vertex(Animation.WALL_LEN, this.nearTower.getHeight(), 0);
         animationCanvas.vertex(Animation.WALL_LEN, this.nearTower.getHeight(), Animation.WALL_WID);
         animationCanvas.vertex(Animation.WALL_LEN, 0, Animation.WALL_WID);
+        animationCanvas.endShape(animationCanvas.CLOSE);
 
+        animationCanvas.beginShape();
         animationCanvas.vertex(Animation.WALL_LEN, 0, Animation.WALL_WID);
         animationCanvas.vertex(Animation.WALL_LEN, this.nearTower.getHeight(), Animation.WALL_WID);
         animationCanvas.vertex(0, this.farTower.getHeight(), Animation.WALL_WID);
         animationCanvas.vertex(0, 0, Animation.WALL_WID);
+        animationCanvas.endShape(animationCanvas.CLOSE);
 
+
+        animationCanvas.beginShape();
         animationCanvas.vertex(0, 0, Animation.WALL_WID);
         animationCanvas.vertex(0, this.farTower.getHeight(), Animation.WALL_WID);
         animationCanvas.vertex(0, this.farTower.getHeight(), 0);
         animationCanvas.vertex(0, 0, 0);
+        animationCanvas.endShape(animationCanvas.CLOSE);
 
+        animationCanvas.beginShape();
         animationCanvas.vertex(0, 0, 0);
         animationCanvas.vertex(Animation.WALL_LEN, 0, 0);
         animationCanvas.vertex(Animation.WALL_LEN, 0, Animation.WALL_WID);
         animationCanvas.vertex(0, 0, Animation.WALL_WID);
+        animationCanvas.endShape(animationCanvas.CLOSE);
 
+        animationCanvas.beginShape();
         animationCanvas.vertex(0, this.farTower.getHeight(), 0);
         animationCanvas.vertex(Animation.WALL_LEN, this.nearTower.getHeight(), 0);
         animationCanvas.vertex(Animation.WALL_LEN, this.nearTower.getHeight(), Animation.WALL_WID);
         animationCanvas.vertex(0, this.farTower.getHeight(), Animation.WALL_WID);
-
-        animationCanvas.endShape();
+        animationCanvas.endShape(animationCanvas.CLOSE);
 
         if (this.myWheel !== null) {
             animationCanvas.translate(Animation.WALL_LEN / 2, (this.t1.getHeight() + this.t2.getHeight())/2, Animation.WALL_WID/2);
@@ -90,14 +100,14 @@
         while (this.readyForBall && this.t1.takeWaitingBall()) {
             // Find x for ball that is closest to t1
             let x = Animation.WALL_LEN + Animation.WALL_WID;
-            for (let b of balls) {
+            for (let b of this.balls) {
                 if (b.getX() < x) {
                     x = b.getX();
                 }
             }
 
             this.addNewBall(x - (Animation.WALL_LEN + Animation.WALL_WID) / this.maxBalls);
-            if (balls.length >= this.maxBalls) {
+            if (this.balls.length >= this.maxBalls) {
                 this.readyForBall = false;
             }
         }
@@ -113,7 +123,7 @@
 
     addWheel() {
         let spinDirection = 1;
-        if (this.farTower.equals(t2)) {
+        if (this.farTower === this.t2) {
             spinDirection = -1;
         }
         this.myWheel = new Wheel(spinDirection * this.current);
@@ -124,7 +134,7 @@
     }
 
     addNewBall(x) {
-        this.balls.add(new Ball(x));
+        this.balls.push(new Ball(this, x));
     }
 
     getCurrent() {
