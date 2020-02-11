@@ -92,11 +92,12 @@
             b.display();
             b.move();
             if (b.getX() > Animation.WALL_LEN + Animation.WALL_WID) {
-                this.balls.splice(b, 1);
+                this.balls.splice(i, 1);
                 this.readyForBall = true;
                 this.t2.addWaitingBall();
             }
         }
+
         while (this.readyForBall && this.t1.takeWaitingBall()) {
             // Find x for ball that is closest to t1
             let x = Animation.WALL_LEN + Animation.WALL_WID;
@@ -107,6 +108,7 @@
             }
 
             this.addNewBall(x - (Animation.WALL_LEN + Animation.WALL_WID) / this.maxBalls);
+            // console.log("x: " + (x - (Animation.WALL_LEN + Animation.WALL_WID) / this.maxBalls));
             if (this.balls.length >= this.maxBalls) {
                 this.readyForBall = false;
             }

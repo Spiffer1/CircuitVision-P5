@@ -38,17 +38,15 @@ const animationSketchHeight = 400;
 const animationSketchWidth = 500;
 
 let scaleVolts = false;     // boolean: sets autoscaling by a toggle button
-//let voltScale = 10;      // int
 let scaleAmps = false;    // boolean
-//let ampScale = 0.5;    // Number (decimal)
 let rotationEnabled = false;    // boolean
+let animating = false;
 
 const circuitSketch = (p) => {
     p.gridX = 80;    // the x and y for the upper left terminal (Dot) on the screen
     p.gridY = 80;
 
-    p.newAnimation;         // boleans...
-    p.animating;
+    p.newAnimation;         // booleans...
     p.showVolts;
     p.showAmps;
     p.shortCircuitWarning;
@@ -71,7 +69,7 @@ const circuitSketch = (p) => {
         p.createCanvas(600, 400);
         p.smooth();
         p.newAnimation = false;
-        p.animating = false;
+        animating = false;
         p.showVolts = false;
         p.showAmps = false;
         p.circuitMode = 0;
@@ -179,7 +177,7 @@ const circuitSketch = (p) => {
         const mX = p.mouseX;
         const mY = p.mouseY;
         if (mX >= 0 && mX < p.width && mY >= 0 && mY < p.height) {
-            p.animating = false;
+            animating = false;
         }
         // Determine two terminals (row and column) that click was between
         let closest = p.dots[0][0];
@@ -490,7 +488,7 @@ const circuitSketch = (p) => {
             p.removeButton.style("background-color", "white");
             const currents = circuit.solve();
             if (currents === null) {
-                p.animating = false;
+                animating = false;
                 p.showVolts = false;
                 //((Toggle)cp5.getController("showVolts")).setState(false);
                 p.shortCircuitWarning = true;
@@ -517,7 +515,7 @@ const circuitSketch = (p) => {
             p.removeButton.style("background-color", "white");
             const currents = circuit.solve();
             if (currents === null) {
-                p.animating = false;
+                animating = false;
                 p.showAmps = false;
                 //((Toggle)cp5.getController("showVolts")).setState(false);
                 p.shortCircuitWarning = true;
@@ -543,13 +541,13 @@ const circuitSketch = (p) => {
         const currents = circuit.solve();
         console.log("Currents: " + currents);
         if (currents === null) {
-            p.animating = false;
+            animating = false;
             //((Toggle)cp5.getController("showAmps")).setState(false);
             p.shortCircuitWarning = true;
         }
         else  {
             p.newAnimation = true;
-            p.animating = true;
+            animating = true;
         }
     }
 }
@@ -569,11 +567,9 @@ const animationSketch = (p) => {
 
     p.draw = () => {
         //background(100);
-        if (circuitCanvas.animating) {
+        if (animating) {
             if (circuitCanvas.newAnimation) {
                 p.anim = new Animation(circuit, gridSpacing, terminalRows, terminalCols, scaleVolts, scaleAmps, rotationEnabled);
-                //voltScale = p.anim.VOLT_SCALE;
-                //ampScale = p.anim.SPEED;  // originally extra java code to keep the string representation of ampScale the same as anim.SPEED
                 circuitCanvas.newAnimation = false;
             }
             p.ortho();
@@ -581,9 +577,6 @@ const animationSketch = (p) => {
             p.fill(255);
             p.anim.displayAnimation();
             //redraw();
-
-            //console.log("Voltscale: " + voltScale);
-
         }
     }
 }

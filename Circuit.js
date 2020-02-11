@@ -16,7 +16,7 @@ class Circuit {
         this.terminals = new Array(this.rows);
         this.components = [];
         this.numBranches = 0;
-        this.verbose = true;
+        this.verbose = false;
 
         // initialize Terminals
         for (let r = 0; r < this.rows; r++) {
