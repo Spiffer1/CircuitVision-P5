@@ -37,8 +37,6 @@ const gridSpacing = 80;
 const animationSketchHeight = 400;
 const animationSketchWidth = 500;
 
-let scaleVolts = false;     // boolean: sets autoscaling by a toggle button
-let scaleAmps = false;    // boolean
 let rotationEnabled = false;    // boolean
 let animating = false;
 
@@ -178,6 +176,10 @@ const circuitSketch = (p) => {
         const mY = p.mouseY;
         if (mX >= 0 && mX < p.width && mY >= 0 && mY < p.height) {
             animating = false;
+            p.showVolts = false;
+            p.showVoltsButton.html("Show Volts");
+            p.showAmps = false;
+            p.showAmpsButton.html("Show Amps");
         }
         // Determine two terminals (row and column) that click was between
         let closest = p.dots[0][0];
@@ -481,7 +483,7 @@ const circuitSketch = (p) => {
         if (p.showVoltsButton.value() === "off") {
             p.showVoltsButton.value("on");
             p.showVoltsButton.html("Hide Volts");
-            circuitMode = 0;
+            p.circuitMode = 0;
             p.wireButton.style("background-color", "white");
             p.resistorButton.style("background-color", "white");
             p.batteryButton.style("background-color", "white");
@@ -508,7 +510,7 @@ const circuitSketch = (p) => {
         if (p.showAmpsButton.value() === "off") {
             p.showAmpsButton.value("on");
             p.showAmpsButton.html("Hide Amps");
-            circuitMode = 0;
+            p.circuitMode = 0;
             p.wireButton.style("background-color", "white");
             p.resistorButton.style("background-color", "white");
             p.batteryButton.style("background-color", "white");
@@ -533,13 +535,12 @@ const circuitSketch = (p) => {
     }
 
     p.animateModel = () => {
-        circuitMode = 0;
+        p.circuitMode = 0;
         p.wireButton.style("background-color", "white");
         p.resistorButton.style("background-color", "white");
         p.batteryButton.style("background-color", "white");
         p.removeButton.style("background-color", "white");
         const currents = circuit.solve();
-        console.log("Currents: " + currents);
         if (currents === null) {
             animating = false;
             //((Toggle)cp5.getController("showAmps")).setState(false);
@@ -563,13 +564,26 @@ const animationSketch = (p) => {
         p.stroke(0);
         p.frameRate(30);
         //p.sphereDetail(6); // use two parameters when creating sphere, destailX and detailY
+
+        p.autoScaleVoltsButton = p.createButton("Auto-Scale Volts");
+        p.voltScaleText = p.createInput("10");
+        p.voltScaleText.size(40, 15);
+        p.autoScaleAmpsButton = p.createButton("Auto-Scale Amps");
+        p.ampScaleText = p.createInput("0.5");
+        p.ampScaleText.size(40, 15);
+
+        p.autoScaleVoltsButton.mousePressed(p.calcVoltScale);   // when button is pressed, callback function is called
+        p.voltScaleText.changed(p.changeVoltScale);
+        p.autoScaleAmpsButton.mousePressed(p.calcAmpScale);
+        p.ampScaleText.changed(p.changeAmpScale);
+
     }
 
     p.draw = () => {
         //background(100);
         if (animating) {
             if (circuitCanvas.newAnimation) {
-                p.anim = new Animation(circuit, gridSpacing, terminalRows, terminalCols, scaleVolts, scaleAmps, rotationEnabled);
+                p.anim = new Animation(circuit, gridSpacing, terminalRows, terminalCols, rotationEnabled);
                 circuitCanvas.newAnimation = false;
             }
             p.ortho();
@@ -578,6 +592,63 @@ const animationSketch = (p) => {
             p.anim.displayAnimation();
             //redraw();
         }
+    }
+
+    p.calcVoltScale = () => {
+        // Auto-scale the volts by setting the VOLT_SCALE global variable declared in Animation class
+        let maxPotential = 0;
+        for (let row = 0; row < terminalRows; row++) {
+            for (let col = 0; col < terminalCols; col++) {
+                const term = circuit.getTerminal(row, col);
+                const v = term.getPotential();
+                if (v < Number.MAX_VALUE && v > maxPotential) {
+                    maxPotential = v;
+                }
+            }
+        }
+        let maxBattVolts = 0;
+        for (let c of circuit.getComponents()) {
+            if (c instanceof Battery) {
+                if (c.getVoltage() > maxBattVolts) {
+                    maxBattVolts = c.getVoltage();
+                }
+            }
+        }
+        let newVoltScale = animationSketchHeight / (2 * maxPotential);    // limits total height of circuit to fit in window
+        newVoltScale = Math.min(newVoltScale, 100 / maxBattVolts);     // limits max height of any one battery to 100 pixels
+        newVoltScale = Math.max(newVoltScale, 1);   // ensures scale is greater than 0
+        newVoltScale = Math.round(newVoltScale);
+        p.voltScaleText.value(newVoltScale);
+        p.changeVoltScale();
+    }
+
+    p.changeVoltScale = () => {
+        VOLT_SCALE = p.voltScaleText.value();
+        circuitCanvas.newAnimation = true;
+    }
+
+    p.calcAmpScale = () => {
+        // Find max current
+        let maxCurrent = 0;
+        for (let c of circuit.getComponents()) {
+            maxCurrent = Math.max(maxCurrent, Math.abs(c.getCurrent()));
+        }
+        let newAmpScale = 1.5 / maxCurrent;
+        // Truncate SPEED to 5 figures (plus a decimal point)
+        newAmpScale = +newAmpScale.toPrecision(5);  // toPrecision returns a String; the '+' converts it to a Number
+        p.ampScaleText.value(newAmpScale);
+        p.changeAmpScale();
+        // Original Java code below, in case this doesn't work correctly...
+        // String speed = Float.toString(SPEED);
+        // if (speed.length() > 6) {
+        //     speed = speed.substring(0, 6);
+        // }
+        // SPEED = Float.parseFloat(speed);
+    }
+
+    p.changeAmpScale = () => {
+        SPEED = p.ampScaleText.value();
+        circuitCanvas.newAnimation = true;
     }
 }
 

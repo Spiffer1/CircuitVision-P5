@@ -36,7 +36,8 @@ class Dot {
                 potential = Math.round(potential * 1000) / 1000;     // round to nearest thousandth
                 //textAlign(LEFT);
                 circuitCanvas.fill(255);
-                circuitCanvas.textSize(10);
+                circuitCanvas.textSize(12);
+                circuitCanvas.noStroke();
                 circuitCanvas.text(potential.toString() + " V", this.x + 3, this.y - 8);
             }
         }

@@ -18,7 +18,7 @@ const BALLS_PER_WALL = 3;   // number of balls on a level wall (wire); there may
 let SPEED = .5; // scale factor for ball speed and water wheel speed
 
 class Animation {
-    constructor(circ, terminalSpacing, terminalRows, terminalCols, scaleV, scaleA, rotatable) {
+    constructor(circ, terminalSpacing, terminalRows, terminalCols, rotatable) {
         this.circuit = circ;
         this.towers = [];
         this.walls = [];
@@ -26,57 +26,7 @@ class Animation {
         WALL_LEN = this.gridSpacing - WALL_WID;
         this.numRows = terminalRows;
         this.numCols = terminalCols;
-        this.autoScaleVolts = scaleV;
-        this.autoScaleAmps = scaleA;
         this.rotationEnabled = rotatable;
-
-        // Scale the Animation display
-        if (this.autoScaleVolts) {
-            let maxPotential = 0;
-            for (let row = 0; row < this.numRows; row++) {
-                for (let col = 0; col < this.numCols; col++) {
-                    const term = this.circuit.getTerminal(row, col);
-                    const v = term.getPotential();
-                    if (v < Number.MAX_VALUE && v > maxPotential) {
-                        maxPotential = v;
-                    }
-                }
-            }
-            let maxBattVolts = 0;
-            for (let c of this.circuit.getComponents()) {
-                if (c instanceof Battery) {
-                    if (c.getVoltage() > maxBattVolts) {
-                        maxBattVolts = c.getVoltage();
-                    }
-                }
-            }
-            VOLT_SCALE = animationCanvas.animationSketchHeight / (2 * maxPotential);    // limits total height of circuit to fit in window
-            VOLT_SCALE = Math.min(VOLT_SCALE, 100 / maxBattVolts);     // limits max height of any one battery to 100 pixels
-            VOLT_SCALE = Math.max(VOLT_SCALE, 1);   // ensures scale is greater than 0
-        }
-        else {
-            VOLT_SCALE = 10;
-        }
-
-        if (this.autoScaleAmps) {
-            // Find max current
-            let maxCurrent = 0;
-            for (let c of this.circuit.getComponents()) {
-                maxCurrent = Math.max(maxCurrent, Math.abs(c.getCurrent()));
-            }
-            SPEED = 1.5 / maxCurrent;
-            // Truncate SPEED to 5 figures (plus a decimal point)
-            SPEED = +SPEED.toPrecision(5);  // toPrecision returns a String; the '+' converts it to a Number
-            // Original Java code below, in case this doesn't work correctly...
-            // String speed = Float.toString(SPEED);
-            // if (speed.length() > 6) {
-            //     speed = speed.substring(0, 6);
-            // }
-            // SPEED = Float.parseFloat(speed);
-        }
-        else {
-            SPEED = 0.5;
-        }
 
         // Construct arrayList of Towers
         for (let row = 0; row < this.numRows; row++) {
