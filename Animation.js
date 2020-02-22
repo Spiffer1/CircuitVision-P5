@@ -18,7 +18,7 @@ const BALLS_PER_WALL = 3;   // number of balls on a level wall (wire); there may
 let SPEED = .5; // scale factor for ball speed and water wheel speed
 
 class Animation {
-    constructor(circ, terminalSpacing, terminalRows, terminalCols, rotatable) {
+    constructor(circ, terminalSpacing, terminalRows, terminalCols) {
         this.circuit = circ;
         this.towers = [];
         this.walls = [];
@@ -26,7 +26,7 @@ class Animation {
         WALL_LEN = this.gridSpacing - WALL_WID;
         this.numRows = terminalRows;
         this.numCols = terminalCols;
-        this.rotationEnabled = rotatable;
+        // this.rotationEnabled = rotatable;
 
         // Construct arrayList of Towers
         for (let row = 0; row < this.numRows; row++) {
@@ -126,7 +126,7 @@ class Animation {
 
         //Translate to center of Animation window and then rotate around y axis
         animationCanvas.translate(this.gridSpacing * (this.numCols - 1) / 2, 0, this.gridSpacing * (this.numRows - 1) / 2);
-        if (this.rotationEnabled) {
+        if (rotationEnabled) {
             // Enable rotation of the animation by moving mouse over its window
             animationCanvas.rotateY(animationCanvas.map(animationCanvas.mouseX, 0, animationCanvas.width, -animationCanvas.PI*2.2, -animationCanvas.PI/6));
         }

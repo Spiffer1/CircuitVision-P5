@@ -571,11 +571,13 @@ const animationSketch = (p) => {
         p.autoScaleAmpsButton = p.createButton("Auto-Scale Amps");
         p.ampScaleText = p.createInput("0.5");
         p.ampScaleText.size(40, 15);
+        p.enableRotationButton = p.createButton("Enable Rotation");
 
         p.autoScaleVoltsButton.mousePressed(p.calcVoltScale);   // when button is pressed, callback function is called
         p.voltScaleText.changed(p.changeVoltScale);
         p.autoScaleAmpsButton.mousePressed(p.calcAmpScale);
         p.ampScaleText.changed(p.changeAmpScale);
+        p.enableRotationButton.mousePressed(p.toggleRotation);
 
     }
 
@@ -638,17 +640,21 @@ const animationSketch = (p) => {
         newAmpScale = +newAmpScale.toPrecision(5);  // toPrecision returns a String; the '+' converts it to a Number
         p.ampScaleText.value(newAmpScale);
         p.changeAmpScale();
-        // Original Java code below, in case this doesn't work correctly...
-        // String speed = Float.toString(SPEED);
-        // if (speed.length() > 6) {
-        //     speed = speed.substring(0, 6);
-        // }
-        // SPEED = Float.parseFloat(speed);
     }
 
     p.changeAmpScale = () => {
         SPEED = p.ampScaleText.value();
         circuitCanvas.newAnimation = true;
+    }
+
+    p.toggleRotation = () => {
+        rotationEnabled = !rotationEnabled;
+        if (rotationEnabled) {
+            p.enableRotationButton.html("Disable Rotation");
+        }
+        else {
+            p.enableRotationButton.html("Enable Rotation");
+        }
     }
 }
 
